@@ -1,0 +1,278 @@
+ Ansible Configuration:
+
+- 5 ways to configure Ansible:
+1) ansible.cfg (Ansible Configuration File)
+2) Environment Variables
+3) Command-line options [-i -> for inventory, -u -> for user]
+4) Playbook keywords
+  - play (most generic)
+  - blocks/includes/imports/roles [options - can contain tasks]
+  - tasks (most specific)
+5) Variables
+
+
+Default Configuration file location: /etc/ansible/ansible.cfg
+
+Ansible configuration file sample:
+https://github.com/ansible/ansible/blob/stable-2.9/examples/ansible.cfg
+
+Ansible Configuration file: 10 sections
+
+Configuration File location:
+- ANSIBLE_CONFIG (environment variable to specify the config file location if set ) ---->ex: ANSIBLE_CONFIG \demo\ansible.cfg --> if the env var is set then it will go for this location insated of default
+- ansible.cfg (in the current directory) --->ex:the location(directory) from where u r excecuting anisble commands, there also u can create the ansible.cfg
+- ~/.ansible.cfg (in the user home directory)
+- /etc/ansible/ansible.cfg (default)
+(ex first will look at env, if not found then, current directory if not, then .ansible.cgf, if not then default
+
+(doubt clarification just information ----> ansible-init ----> its used to create ansible.cfg wit default settings)
+Ansible Inventory:
+- Default inventory file location: /etc/ansible/hosts
+- Command line -> -i <inventory_file_path>
+- specify the hostname/host_IP/DNS + host/hostgroup specific variables
+- Two formats:
+  - INI format (default)
+  - YAML format
+---------------------------xxxxxxxxxxxxxxxxxxxxxxxxx-----------------------------------------xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+YAML - spacing/intendation
+
+key1: value
+key2: value
+key3:
+  key3a: value
+  key3b: value
+  key3c: value
+vehicle:
+  - car
+  - bike
+  - truck
+-------------------------------------xxxxxxxxxxxxxxxxxxxx-----------------------------------------xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+Types of Ansible Inventory:
+- Static Inventory
+- Dynamic Inventory
+
+
+Variables in inventory file:
+
+[webserver]------> by this u can see that webserver is a host group and it has two hosts(1 and 2) with the variables http_port=80 and myvar=webserver, it means that it will b applied if the variables is matched)
+host1 http_port=80 myvar=webserver
+host2 http_port=80 myvar=webserver
+
+(ex: from the above example there are only two hosts and if there are 20 hosts with same variable and value then u cant specify it in each and every line, so u can follow the below example)
+
+[webserver]
+host1
+host2
+
+[webserver:vars]                                [webserver:vars]
+http_port=80                    OR              http_port=80 myvar=webserver
+myvar=webserver
+
+----------------------xxxxxxxxxxxxxxxxxxxx-----------------------------------------xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+Variables for hosts in files:
+
+Inventory file location: /etc/ansible/hosts   
+  2 host -> host1, host2
+  1 hostgroup -> webserver
+(ex from above two lines it means 
+webserver
+host1
+host2
+----->(ex: if we want o sepcify varibles via files then understand below lines )
+Variable file for host - host1 -> /etc/ansible/host_vars/host1
+Variable file for host - host2 -> /etc/ansible/host_vars/host2
+Variable file for hostgroup - webserver -> /etc/ansible/group_vars/webserver
+xxxxxxxxxxxxxxxxxxxxxxxxx-----------------------------------------xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+
+Patterns in Ansible:
+
+[dbservers]
+hostdb1
+hostdb2
+
+[awsservers]
+hostdb1
+hostdb2
+(ex: the above is the example for inventory file with two hosts and two hostgroups)
+Patterns for hostdb1: ( if u want to execute CI only hostdb1 u can use following three ways)
+  hostdb1
+  dbservers[0]
+  awsservers[0]
+
+Patterns for hostdb2:  ( if u want to execute CI only hostdb1 u can use following three ways)
+  hostdb2
+  dbservers[1]
+  awsservers[1]
+xxxxxxxxxxxxxxxxxxxxxxxxx-----------------------------------------xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+(the is the invntory file with 3 hosts and two hostgroups)
+[group1]
+host1
+host2
+
+[group2]
+host1
+host3
+-----inventory ends here--------
+host1:host2:host3 -----u can also use this way to define hosts in adhoc orplay execution
+host1,host2,host3 -----u can also use this way to define hosts in adhoc orplay execution
+
+group1[0:1]------u can also use this way like b, group1 (0 means host1 and 1 means host2) 
+
+group1:group2 -> host1,host2,host3(group1:group2 by this u will get all the hosts from group1 and group2)
+group1:&group2 -> host1(if u & u will get only  hosts which are or is common from both the groups)
+
+Pattern for host2:
+  group1:!group2 -> host2( it means that u want to get a host of group1 but not the part of group2)
+
+Pattern for host1:
+  group1:&group2 -> host1 ( it means that u want to get host which is the part of group1 and group2)
+
+--------------another inventory --------------
+www.example1.com
+www.example2.com
+www.example3.com
+www.example4.com
+www.example5.com
+
+||
+
+www.example[1:5].com ----------------( the above inventory can also be written in this pattern also)
+
+
+master: 172.31.52.31
+worker1: 172.31.57.203
+worker2: 172.31.49.59
+
+
+Practicals:
+[master]$ ansible --version
+[master]$ ssh labsuser@localhost
+[master]$ exit
+
+[master]$ ssh labsuser@private_ip_of_worker1
+[master]$ ssh labsuser@172.31.57.203
+[master]$ ssh labsuser@private_ip_of_worker2
+[master]$ ssh labsuser@172.31.49.59
+
+[master]$ ssh-copy-id labsuser@private_ip_of_worker1
+[master]$ ssh-copy-id labsuser@172.31.57.203
+
+[master]$ cat ~/.ssh/id_rsa.pub
+
+Enable passwordless SSH from master to worker nodes:
+[worker1 & worker2]$ sudo nano ~/.ssh/authorized_keys    [Paste the copied public key of master here]
+[worker1 & worker2]$ cat ~/.ssh/authorized_keys
+
+
+[master]$ ssh labsuser@private_ip_of_worker1
+[master]$ exit
+[master]$ ssh labsuser@private_ip_of_worker2
+[master]$ exit
+
+[master]$ ssh labsuser@172.31.57.203
+[master]$ exit
+[master]$ ssh labsuser@172.31.49.59
+[master]$ exit
+
+
+Inventory:
+$ sudo nano /etc/ansible/hosts
+[myservers]
+localhost
+<private_ip_of_worker1>
+<private_ip_of_worker2>
+
+
+[myservers]
+localhost
+172.31.57.203
+172.31.49.59
+
+
+Verify whether Ansible control server - able to talk to our nodes:
+$ ansible -m ping all
+[OR]
+$ ansible -m ping myservers
+
+$ ansible all --list-hosts
+
+
+$ ansible localhost -a "ls"
+$ ansible myservers -a "ls"
+
+
+Connection b/w control server & nodes:
+  Linux - SSH
+  Windows - WinRM (Powershell)
+
+
+
+Ansible Ad-Hoc Commands:
+- for rarely executed tasks
+- execute the task on one node or multiple nodes
+- executed using the ansible command line
+
+
+Syntax:
+$ ansible <host/hostgroup> -m <module_name> -a <args> -u <user_name> --become
+
+
+$ ansible -m ping all
+[OR]
+$ ansible all -m ping
+
+$ ansible all -m shell -a uptime
+$ ansible all -m shell -a "free -m"
+$ ansible localhost -m setup
+
+Ansible Modules:
+https://docs.ansible.com/ansible/2.9/modules/list_of_all_modules.html
+
+
+Shell commands in playbook:
+- Specify the host/host_group - in playbook
+- Add a task to use the shell module to execute the commands like - uptime/date/free -m
+- Save the output of the command into a register variable
+- Print the registered variable (debug)
+
+
+
+$ ansible myservers -m ping
+$ ansible myservers -m ping -u demo
+$ ansible myservers -m ping -u labsuser
+
+$ ansible myservers -m debug -a "msg=HELLOWORLD"
+
+
+Ubuntu, CentOS, Fedora
+
+Template:
+
+Hello {{ facts.ansible_distribution }}
+
+Template module
+
+Hello Ubuntu
+Hello CentOS
+Hello Fedora
+
+
+$ ansible myservers -m setup
+$ ansible myservers -m shell -a hostname
+$ ansible myservers -m apt -a "name=tree state=present"
+$ ansible myservers -m apt -a "name=tree state=present" --become
+$ ansible myservers -m shell -a "tree --version"
+
+$ ansible myservers -m file -a 'dest=/home/labsuser/sample.txt state=touch mode=600'
+
+$ echo "My master file" > /tmp/src_file
+
+$ ansible myservers -m copy -a 'src=/tmp/src_file dest=/home/labsuser/'
+
+$ ansible myservers -m copy -a 'content="Hello from Ansible CS" dest=/home/labsuser/newsrc'
+$ ansible myservers -m shell -a 'cat /home/labsuser/newsrc'
+
+
+
